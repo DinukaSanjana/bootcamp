@@ -1,4 +1,4 @@
-```markdown
+
 # Ansible Practical - Just Enough Ansible to be Dangerous
 
 ## Environment Setup (Docker Compose)
@@ -12,7 +12,7 @@ docker compose down --rmi all --volumes --remove-orphans
 
 # Start lab
 docker compose up -d
-```
+
 
 ## Access Web IDE (Control Node)
 http://<YOUR_IP>:8000  
