@@ -1,4 +1,4 @@
-```markdown
+<!-- ```markdown -->
 # Ansible Practical - Just Enough Ansible to be Dangerous  
 
 ## 1. Environment Setup (Docker Compose)
@@ -13,6 +13,7 @@ docker compose down --rmi all --volumes --remove-orphans
 # Start the lab
 docker compose up -d
 ```
+
 
 ## 2. Docker Compose File Overview
 
