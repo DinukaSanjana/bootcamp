@@ -1,7 +1,7 @@
+```markdown
+# Ansible Practical - Just Enough Ansible to be Dangerous  
 
-# Ansible Practical - Just Enough Ansible to be Dangerous
-
-## Environment Setup (Docker Compose)
+## 1. Environment Setup (Docker Compose)
 
 ```bash
 git clone https://github.com/DinukaSanjana/bootcamp.git
@@ -10,110 +10,225 @@ cd bootcamp/setup
 # Optional cleanup
 docker compose down --rmi all --volumes --remove-orphans
 
-# Start lab
+# Start the lab
 docker compose up -d
-
-
-## Access Web IDE (Control Node)
-http://<YOUR_IP>:8000  
-Example: http://159.65.77.142:8000
-
-## Key Docker Services
-```yaml
-control:
-  image: codespaces/ansible-control:3.0.0
-  ports: ["8000:8000"]
-frontend:
-  image: codespaces/ansible-node-ubuntu:18.04
-catalogue:
-  image: codespaces/ansible-node-ubuntu:18.04
-carts:
-  image: codespaces/ansible-node-ubuntu:18.04
 ```
 
-## SSH to Managed Nodes (from control node)
+## 2. Docker Compose File Overview
+
+**File location:** `bootcamp/setup/docker-compose.yml`
+
+```yaml
+services:
+  control:
+    image: codespaces/ansible-control:3.0.0
+    ports:
+      - "8000:8000"
+    hostname: control
+    container_name: control
+
+  frontend:
+    image: codespaces/ansible-node-ubuntu:18.04
+    hostname: frontend
+
+  catalogue:
+    image: codespaces/ansible-node-ubuntu:18.04
+    hostname: catalogue
+
+  carts:
+    image: codespaces/ansible-node-ubuntu:18.04
+    hostname: carts
+
+  # Additional nodes: user, payment, orders, etc.
+```
+
+## 3. Containers Created by Docker Compose
+
+| Container Name | Image                            | Role                     | Access Method                     |
+|----------------|----------------------------------|--------------------------|-----------------------------------|
+| control        | codespaces/ansible-control:3.0.0 | Ansible Control Node + Web IDE | http://<IP>:8000                |
+| frontend       | codespaces/ansible-node-ubuntu:18.04 | Managed Node          | ssh devops@frontend             |
+| catalogue      | codespaces/ansible-node-ubuntu:18.04 | Managed Node          | ssh devops@catalogue            |
+| carts          | codespaces/ansible-node-ubuntu:18.04 | Managed Node          | ssh devops@carts                |
+
+## 4. Preparing & Opening Ansible Control Node
+
 ```bash
-ssh devops@frontend     # Password: codespaces
+# Open in browser
+http://<YOUR_SERVER_IP>:8000
+# Example: http://159.65.77.142:8000
+```
+→ Opens Theia (VS Code-based) Web IDE → This is your Ansible Control Node
+
+## 5. Inside Control Node - Initial Setup
+
+```bash
+# Clone project
+git clone https://github.com/DinukaSanjana/bootcamp.git
+cd bootcamp/ansible
+
+# Verify Ansible
+ansible --version
+# ansible 2.9.10
+```
+
+## 6. Test Connectivity
+
+```bash
+ansible all -m ping
+```
+→ Should return green "pong" from all nodes
+
+## 7. Inventory File & Path
+
+**Location:** `/root/workspace/bootcamp/ansible/ansible.cfg` (config points to default inventory)
+
+**Actual inventory used:** Dynamic inventory via Docker network + `/etc/ansible/hosts` or embedded in `ansible.cfg`
+
+**Sample host entry format used in lab:**
+```ini
+frontend ansible_host=frontend ansible_user=devops ansible_ssh_pass=codespaces
+```
+
+## 8. SSH to Managed Nodes
+
+```bash
+ssh devops@frontend      # Password: codespaces
 ssh devops@carts
 ssh devops@catalogue
 ```
 
-## Inside Control Node - Project Setup
+Check service after playbook run:
 ```bash
-git clone https://github.com/DinukaSanjana/bootcamp.git
-cd bootcamp/ansible
-
-ls
-# README.md  ansible.cfg  carts.yml  catalogue.yml  common.yml
-# frontend.yml  mogambo.yml  environments  group_vars  roles
+sudo systemctl status nginx
 ```
 
-## Ansible Version
+## 9. Ad-hoc Commands Executed
+
 ```bash
-ansible --version
-# ansible 2.9.10
-# config file = /root/workspace/bootcamp/ansible/ansible.cfg
+# Check uptime on all nodes
+ansible all -a "uptime"
+
+# Check disk usage
+ansible all -a "df -h"
+
+# Reboot all nodes
+ansible all -a "/sbin/reboot" --forks=10
 ```
 
-## Sync Fork with Upstream (if forked)
+## 10. Run Ansible Playbooks
+
 ```bash
-git remote add upstream https://github.com/udbc/bootcamp.git
-git pull upstream master
+cd ~/bootcamp/ansible
+
+ansible-playbook frontend.yml
+ansible-playbook catalogue.yml
+ansible-playbook carts.yml
+ansible-playbook mogambo.yml
 ```
 
-## Test Connectivity
+## 11. Ansible Roles - Project Structure
+
+**Path:** `roles/`
+
 ```bash
-ansible all -m ping
+roles/
+├── frontend/
+│   ├── tasks/
+│   │   └── main.yml
+│   ├── handlers/
+│   │   └── main.yml
+│   ├── templates/
+│   ├── files/
+│   ├── vars/
+│   │   └── main.yml
+│   └── defaults/
+│       └── main.yml
+├── catalogue/
+├── carts/
+└── common/
 ```
 
-## LAB 1 - Completed Tasks
-- Started Docker Compose lab  
-- Accessed web IDE at port 8000  
-- SSH into frontend, carts, catalogue nodes  
-- Cloned bootcamp repo inside control node  
-- Verified Ansible ping to all nodes  
+## 12. Normal Playbook vs Large Project (Roles-Based)
 
-## Inventory Example
-```ini
-[frontend]
-frontend ansible_host=172.18.0.3 ansible_user=devops
+| Type                  | Structure                                 | Use Case                     |
+|-----------------------|-------------------------------------------|--------------------------------|
+| Simple Playbook       | All tasks, vars, templates in one .yml    | Small scripts, demos           |
+| Large Project (Roles) | Separated: tasks, vars, templates, handlers, files | Reusable, modular, maintainable, team-friendly |
 
-[webservers]
-frontend ansible_host=172.18.0.3 ansible_user=devops
+## 13. Generate New Role
 
-[all:vars]
-ansible_python_interpreter=/usr/bin/python3
+```bash
+ansible-galaxy init --offline roles/frontend
+ansible-galaxy init --offline roles/catalogue
 ```
 
-## Sample Playbook
+Creates full role directory structure automatically.
+
+## 14. Playbook Using Roles
+
 ```yaml
-- name: Install Nginx on webserver
-  hosts: webservers
+# frontend.yml
+- name: Deploy Frontend Service
+  hosts: frontend
   become: yes
-  tasks:
-    - name: Install nginx
-      apt:
-        name: nginx
-        state: present
+  roles:
+    - common
+    - nginx
+    - frontend
 ```
 
-Run:
-```bash
-ansible-playbook -i inventory.ini site.yml
-```
+## 15. Full Playbook Structure Used
 
-## Project Structure Learned
 ```
 ansible.cfg
 environments/
 group_vars/
+hosts                  # inventory (if static)
 roles/
-*.yml playbooks (frontend.yml, catalogue.yml, etc.)
+  └── <role_name>/
+      ├── tasks/
+      ├── handlers/
+      ├── templates/
+      ├── files/
+      ├── vars/
+      └── defaults/
+frontend.yml
+catalogue.yml
+carts.yml
+mogambo.yml            # Master playbook
 ```
 
-**Status: Completed**  
-**Environment: Fully containerized Ansible lab with web IDE**  
-**Ansible Version: 2.9.10**  
-**Control Node: Browser-based Theia IDE**  
-**Managed Nodes: frontend, catalogue, carts, etc.**
+## 16. Deploy mogambo.org E-commerce Website
+
+```bash
+ansible-playbook mogambo.yml
 ```
+
+After successful run → Open in browser:
+
+**Website URL:**  
+`http://<YOUR_SERVER_PUBLIC_IP>:3000`
+
+**Services deployed:**
+- Nginx (port 80)
+- Node.js apps (frontend, catalogue, carts)
+- MongoDB
+- Full mogambo.org e-commerce site running
+
+Accessible via: `http://<VM_PUBLIC_IP>:3000`
+
+## Final Status: Completed
+
+- Full multi-node Ansible lab running via Docker Compose
+- Web-based control node at port 8000
+- All nodes reachable via `ansible all -m ping`
+- Roles-based, clean, reusable playbook structure
+- Successfully deployed full-stack mogambo.org website
+- Used ad-hoc commands, inventory, roles, handlers, templates
+
+**Project Completed Successfully**  
+**Live Site:** http://<YOUR_IP>:3000  
+**Control Panel:** http://<YOUR_IP>:8000
+
+Ready for production-grade Ansible automation!
