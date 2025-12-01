@@ -209,7 +209,7 @@ ansible-playbook mogambo.yml
 After successful run → Open in browser:
 
 **Website URL:**  
-`http://<YOUR_SERVER_PUBLIC_IP>:3000`
+`http://<YOUR_SERVER_PUBLIC_IP>:80`
 
 **Services deployed:**
 - Nginx (port 80)
@@ -217,7 +217,7 @@ After successful run → Open in browser:
 - MongoDB
 - Full mogambo.org e-commerce site running
 
-Accessible via: `http://<VM_PUBLIC_IP>:3000`
+Accessible via: `http://<VM_PUBLIC_IP>:80`
 
 ## Final Status: Completed
 
@@ -229,7 +229,7 @@ Accessible via: `http://<VM_PUBLIC_IP>:3000`
 - Used ad-hoc commands, inventory, roles, handlers, templates
 
 **Project Completed Successfully**  
-**Live Site:** http://<YOUR_IP>:3000  
+**Live Site:** http://<YOUR_IP>:80  
 **Control Panel:** http://<YOUR_IP>:8000
 
 Ready for production-grade Ansible automation!
